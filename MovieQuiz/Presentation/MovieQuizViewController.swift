@@ -112,7 +112,11 @@ extension MovieQuizViewController {
                                       preferredStyle: .alert)
         
         // константа с кнопкой для системного алерта
-        let action = UIAlertAction(title: result.buttonText, style: .default) { _ in
+        let action = UIAlertAction(title: result.buttonText, style: .default) { [weak self] _ in
+            guard let self = self else {
+                return
+            }
+            
             self.correctAnswers = 0
             self.currentQuestionIndex = 0
             self.show(quiz: self.convert(model: self.questions[self.currentQuestionIndex]))
