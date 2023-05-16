@@ -1,6 +1,6 @@
 import UIKit
 
-final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
+final class MovieQuizViewController: UIViewController {
     
     // MARK: - Actions
     @IBAction private func noButtonClicked(_ sender: UIButton) {
@@ -19,6 +19,8 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
     }
     
     // MARK: - Outlets
+    @IBOutlet private weak var yesButton: UIButton!
+    @IBOutlet private weak var noButton: UIButton!
     @IBOutlet private weak var textLabel: UILabel!
     @IBOutlet private weak var imageView: UIImageView!
     @IBOutlet private weak var counterLabel: UILabel!
@@ -34,19 +36,22 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
     private var questionFactory: QuestionFactoryProtocol?
     // текущий вопрос, который видит пользователь
     private var currentQuestion: QuizQuestion?
-    
+    // показывает алерты
+    private var alertPresenter: AlertPresenter?
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         
         questionFactory = QuestionFactory(delegate: self)
+        alertPresenter = AlertPresenter(viewController: self)
+        
         questionFactory?.requestNextQuestion()
     }
 }
 
-extension MovieQuizViewController {
-   
+extension MovieQuizViewController: QuestionFactoryDelegate {
+    
     // MARK: - QuestionFactoryDelegate
     func didReceiveNextQuestion(question: QuizQuestion?) {
         guard let question = question else {
@@ -75,32 +80,6 @@ extension MovieQuizViewController {
         imageView.image = step.image
     }
     
-    // приватный метод для показа результатов раунда квиза
-    // принимает вью модель QuizResultsViewModel и ничего не возвращает
-    private func show(quiz result: QuizResultsViewModel) {
-        // создаём объекты всплывающего окна
-        let alert = UIAlertController(title: result.title,
-                                      message: result.text,
-                                      preferredStyle: .alert)
-        
-        // константа с кнопкой для системного алерта
-        let action = UIAlertAction(title: result.buttonText, style: .default) { [weak self] _ in
-            guard let self = self else {
-                return
-            }
-            
-            self.correctAnswers = 0
-            self.currentQuestionIndex = 0
-            
-            self.questionFactory?.requestNextQuestion()
-        }
-        
-        // добавляем в алерт кнопку
-        alert.addAction(action)
-        // показываем всплывающее окно
-        self.present(alert, animated: true, completion: nil)
-    }
-    
     // приватный метод, который меняет цвет рамки
     // принимает на вход булевое значение и ничего не возвращает
     private func showAnswerResult(isCorrect: Bool) {
@@ -112,6 +91,7 @@ extension MovieQuizViewController {
         imageView.layer.borderWidth = 8
         imageView.layer.cornerRadius = 15
         imageView.layer.borderColor = isCorrect ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
+        buttonCanBePressed(false)
         
         // запускаем задачу через 1 секунду c помощью диспетчера задач
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
@@ -126,20 +106,38 @@ extension MovieQuizViewController {
     // метод ничего не принимает и ничего не возвращает
     private func showNextQuestionOrResults() {
         imageView.layer.borderWidth = 0
+        buttonCanBePressed(true)
         
         if currentQuestionIndex == questionsAmount - 1 {
             // идём в состояние "Результат квиза"
-            show(quiz: QuizResultsViewModel(title: "Этот раунд окончен!",
-                                            text: "Ваш результат \(correctAnswers)/10",
-                                            buttonText: "Сыграть еще раз"))
-            
+            showResults()
         } else {
             currentQuestionIndex += 1
-            
             questionFactory?.requestNextQuestion()
         }
     }
     
+    // приватный метод показывает результат квиза
+    private func showResults() {
+        let alert = AlertModel(title: "Этот раунд окончен!",
+                               message: "Ваш результат \(correctAnswers)/10",
+                               buttonText: "Сыграть еще раз",
+                               completion: { [weak self] in
+            guard let self = self else {
+                return
+            }
+            self.correctAnswers = 0
+            self.currentQuestionIndex = 0
+            self.questionFactory?.requestNextQuestion()
+        })
+        alertPresenter?.show(alert)
+    }
+    
+    // приватный метод делает доступными/недоступными кнопки да,нет
+    private func buttonCanBePressed(_ state: Bool) {
+        yesButton.isUserInteractionEnabled = state
+        noButton.isUserInteractionEnabled = state
+    }
 }
 
 extension UIImage {
