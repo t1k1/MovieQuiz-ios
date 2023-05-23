@@ -37,7 +37,7 @@ final class MovieQuizViewController: UIViewController {
     // текущий вопрос, который видит пользователь
     private var currentQuestion: QuizQuestion?
     // показывает алерты
-    private var alertPresenter: AlertPresenter?
+    private var alertPresenter: AlertPresenterProtocol?
     // для подсчета статистики
     private var statisticService: StatisticService?
     
@@ -46,14 +46,14 @@ final class MovieQuizViewController: UIViewController {
         super.viewDidLoad()
         
         questionFactory = QuestionFactory(delegate: self)
-        alertPresenter = AlertPresenter(viewController: self)
+        alertPresenter = AlertPresenter(delagate: self)
         statisticService = StatisticServiceImplementation()
         
         questionFactory?.requestNextQuestion()
     }
 }
 
-extension MovieQuizViewController: QuestionFactoryDelegate {
+extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDelagate {
     
     // MARK: - QuestionFactoryDelegate
     func didReceiveNextQuestion(question: QuizQuestion?) {
@@ -66,6 +66,11 @@ extension MovieQuizViewController: QuestionFactoryDelegate {
         DispatchQueue.main.async { [weak self] in
             self?.show(quiz: viewModel)
         }
+    }
+    
+    // MARK: - AlertPresentableDelagate
+    func present(alert: UIAlertController, animated flag: Bool) {
+        self.present(alert, animated: flag)
     }
     
     // MARK: - Private functions

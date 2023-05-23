@@ -8,10 +8,10 @@
 import UIKit
 
 final class AlertPresenter {
-    private weak var viewController: UIViewController?
+    private weak var delagate: AlertPresentableDelagate?
         
-    init(viewController: UIViewController) {
-        self.viewController = viewController
+    init(delagate: AlertPresentableDelagate?) {
+        self.delagate = delagate
     }
 }
 
@@ -29,6 +29,6 @@ extension AlertPresenter: AlertPresenterProtocol {
         // добавляем в алерт кнопку
         alert.addAction(action)
         // показываем всплывающее окно
-        viewController?.present(alert, animated: true, completion: nil)
+        delagate?.present(alert: alert, animated: true)
     }
 }
