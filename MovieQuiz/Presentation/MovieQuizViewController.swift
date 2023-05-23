@@ -38,6 +38,8 @@ final class MovieQuizViewController: UIViewController {
     private var currentQuestion: QuizQuestion?
     // показывает алерты
     private var alertPresenter: AlertPresenter?
+    // для подсчета статистики
+    private var statisticService: StatisticService?
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
@@ -45,6 +47,7 @@ final class MovieQuizViewController: UIViewController {
         
         questionFactory = QuestionFactory(delegate: self)
         alertPresenter = AlertPresenter(viewController: self)
+        statisticService = StatisticServiceImplementation()
         
         questionFactory?.requestNextQuestion()
     }
@@ -119,8 +122,16 @@ extension MovieQuizViewController: QuestionFactoryDelegate {
     
     // приватный метод показывает результат квиза
     private func showResults() {
+        guard let statisticService = statisticService else {
+            print("Не удалось получить статистику")
+            return
+        }
+        statisticService.store(correct: correctAnswers, total: questionsAmount)
+        
         let alert = AlertModel(title: "Этот раунд окончен!",
-                               message: "Ваш результат \(correctAnswers)/10",
+                               message: makeMessage(statisticService: statisticService,
+                                                    correctAnswers: correctAnswers,
+                                                    totalQuestions: questionsAmount),
                                buttonText: "Сыграть еще раз",
                                completion: { [weak self] in
             guard let self = self else {
@@ -137,6 +148,19 @@ extension MovieQuizViewController: QuestionFactoryDelegate {
     private func buttonCanBePressed(_ state: Bool) {
         yesButton.isUserInteractionEnabled = state
         noButton.isUserInteractionEnabled = state
+    }
+    
+    // приватный метод формирует message для алерта
+    private func makeMessage(statisticService: StatisticService, correctAnswers: Int, totalQuestions: Int) -> String {
+        let bestGame = statisticService.bestGame
+        let message = """
+        Ваш результат: \(correctAnswers)/\(totalQuestions)
+        Количество сыгранных квизов: \(statisticService.gamesCount)
+        Рекорд: \(bestGame.correct)/\(bestGame.total) (\(bestGame.date.dateTimeString))
+        Средняя точность: \(String(format: "%.2f", statisticService.totalAccuracy))%
+        """
+        
+        return message
     }
 }
 
