@@ -37,7 +37,7 @@ final class StatisticServiceImplementation: StatisticService {
     
     private let userDefaults = UserDefaults.standard
     
-    // количество вопросов
+    /// количество вопросов
     var total: Int {
         get {
             userDefaults.integer(forKey: Keys.total.rawValue)
@@ -47,7 +47,7 @@ final class StatisticServiceImplementation: StatisticService {
             userDefaults.set(newValue, forKey: Keys.total.rawValue)
         }
     }
-    // количество правильных ответов в игре
+    /// количество правильных ответов в игре
     var correct: Int {
         get {
             userDefaults.integer(forKey: Keys.correct.rawValue)
@@ -57,11 +57,11 @@ final class StatisticServiceImplementation: StatisticService {
             userDefaults.set(newValue, forKey: Keys.correct.rawValue)
         }
     }
-    // средняя точность игры
+    /// средняя точность игры
     var totalAccuracy: Double {
         Double(correct) / Double(total) * 100
     }
-    // количество игр
+    /// количество игр
     var gamesCount: Int {
         get {
             userDefaults.integer(forKey: Keys.gamesCount.rawValue)
@@ -70,7 +70,7 @@ final class StatisticServiceImplementation: StatisticService {
             userDefaults.set(newValue, forKey: Keys.gamesCount.rawValue)
         }
     }
-    // лучшая попытка
+    /// лучшая попытка
     var bestGame: GameRecord {
         get {
             guard let data = userDefaults.data(forKey: Keys.bestGame.rawValue),
@@ -91,11 +91,11 @@ final class StatisticServiceImplementation: StatisticService {
         }
     }
     
-    // метод для сохранения текущего результата игры
+    /// метод для сохранения текущего результата игры
     func store(correct count: Int, total amount: Int) {
-        self.total += amount
-        self.correct += count
-        self.gamesCount += 1
+        total += amount
+        correct += count
+        gamesCount += 1
         
         let currentGame = GameRecord(correct: count, total: amount, date: Date())
         

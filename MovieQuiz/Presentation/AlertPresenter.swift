@@ -21,7 +21,7 @@ extension AlertPresenter: AlertPresenterProtocol {
                                       message: alertArgs.message,
                                       preferredStyle: .alert)
         
-        // константа с кнопкой для системного алерта
+        /// константа с кнопкой для системного алерта
         let action = UIAlertAction(title: alertArgs.buttonText, style: .default) { _ in
             alertArgs.completion()
         }

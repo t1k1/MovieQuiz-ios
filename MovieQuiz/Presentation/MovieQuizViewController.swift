@@ -26,24 +26,25 @@ final class MovieQuizViewController: UIViewController {
     @IBOutlet private weak var counterLabel: UILabel!
     
     // MARK: - Variables
-    // переменная со счётчиком правильных ответов, начальное значение закономерно 0
+    /// переменная со счётчиком правильных ответов, начальное значение закономерно 0
     private var correctAnswers = 0
-    // переменная с индексом текущего вопроса, начальное значение 0
+    /// переменная с индексом текущего вопроса, начальное значение 0
     private var currentQuestionIndex = 0
-    // общее количество вопросов для квиза
+    /// общее количество вопросов для квиза
     private let questionsAmount: Int = 10
-    // фабрика вопросов
+    /// фабрика вопросов
     private var questionFactory: QuestionFactoryProtocol?
-    // текущий вопрос, который видит пользователь
+    /// текущий вопрос, который видит пользователь
     private var currentQuestion: QuizQuestion?
-    // показывает алерты
+    /// показывает алерты
     private var alertPresenter: AlertPresenterProtocol?
-    // для подсчета статистики
+    /// для подсчета статистики
     private var statisticService: StatisticService?
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+        imageView.layer.cornerRadius = 15
         
         questionFactory = QuestionFactory(delegate: self)
         alertPresenter = AlertPresenter(delagate: self)
@@ -74,22 +75,21 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
     }
     
     // MARK: - Private functions
-    // метод конвертации, который принимает моковый вопрос и возвращает вью модель для экрана вопроса
+    /// метод конвертации, который принимает моковый вопрос и возвращает вью модель для экрана вопроса
     private func convert(model: QuizQuestion) -> QuizStepViewModel {
         return QuizStepViewModel(image: UIImage.named(model.image),
                                  question: model.text,
                                  questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)")
     }
     
-    // приватный метод вывода на экран вопроса, который принимает на вход вью модель вопроса и ничего не возвращает
+    /// приватный метод вывода на экран вопроса, который принимает на вход вью модель вопроса и ничего не возвращает
     private func show(quiz step: QuizStepViewModel) {
         textLabel.text = step.question
         counterLabel.text = step.questionNumber
         imageView.image = step.image
     }
     
-    // приватный метод, который меняет цвет рамки
-    // принимает на вход булевое значение и ничего не возвращает
+    /// приватный метод, который меняет цвет рамки, имает на вход булевое значение и ничего не возвращает
     private func showAnswerResult(isCorrect: Bool) {
         if isCorrect {
             correctAnswers += 1
@@ -110,8 +110,7 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
         }
     }
     
-    // приватный метод, который содержит логику перехода в один из сценариев
-    // метод ничего не принимает и ничего не возвращает
+    // приватный метод, который содержит логику перехода в один из сценариев, метод ничего не принимает и ничего не возвращает
     private func showNextQuestionOrResults() {
         imageView.layer.borderWidth = 0
         buttonCanBePressed(true)
@@ -125,7 +124,7 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
         }
     }
     
-    // приватный метод показывает результат квиза
+    /// приватный метод показывает результат квиза
     private func showResults() {
         guard let statisticService = statisticService else {
             print("Не удалось получить статистику")
@@ -149,13 +148,13 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
         alertPresenter?.show(alert)
     }
     
-    // приватный метод делает доступными/недоступными кнопки да,нет
+    /// приватный метод делает доступными/недоступными кнопки да,нет
     private func buttonCanBePressed(_ state: Bool) {
         yesButton.isUserInteractionEnabled = state
         noButton.isUserInteractionEnabled = state
     }
     
-    // приватный метод формирует message для алерта
+    /// приватный метод формирует message для алерта
     private func makeMessage(statisticService: StatisticService, correctAnswers: Int, totalQuestions: Int) -> String {
         let bestGame = statisticService.bestGame
         let message = """
