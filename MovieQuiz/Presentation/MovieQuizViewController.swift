@@ -24,6 +24,7 @@ final class MovieQuizViewController: UIViewController {
     @IBOutlet private weak var textLabel: UILabel!
     @IBOutlet private weak var imageView: UIImageView!
     @IBOutlet private weak var counterLabel: UILabel!
+    @IBOutlet private weak var activityIndicator: UIActivityIndicatorView!
     
     // MARK: - Variables
     /// переменная со счётчиком правильных ответов, начальное значение закономерно 0
@@ -80,6 +81,16 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
         return QuizStepViewModel(image: UIImage.named(model.image),
                                  question: model.text,
                                  questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)")
+    }
+    
+    /// приватный метод для показа activityIndicator
+    private func loadingIndicatorHidden(_ state: Bool){
+        activityIndicator.isHidden = state
+        if state {
+            activityIndicator.stopAnimating()
+        } else {
+            activityIndicator.startAnimating()
+        }
     }
     
     /// приватный метод вывода на экран вопроса, который принимает на вход вью модель вопроса и ничего не возвращает
@@ -165,6 +176,24 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
         """
         
         return message
+    }
+    
+    /// приватный метод который показывает что произошла ошибка
+    private func showNetworkError(message: String){
+        loadingIndicatorHidden(true)
+        
+        let alert = AlertModel(title: "Что-то пошло не так(",
+                               message: message,
+                               buttonText: "Попробовать ещё раз",
+                               completion: { [weak self] in
+            guard let self = self else {
+                return
+            }
+            self.currentQuestionIndex = 0
+            self.correctAnswers = 0
+            self.questionFactory?.requestNextQuestion()
+        })
+        alertPresenter?.show(alert)
     }
 }
 
