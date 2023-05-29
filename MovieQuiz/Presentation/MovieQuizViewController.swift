@@ -47,11 +47,12 @@ final class MovieQuizViewController: UIViewController {
         super.viewDidLoad()
         imageView.layer.cornerRadius = 15
         
-        questionFactory = QuestionFactory(delegate: self)
+        questionFactory = QuestionFactory(delegate: self, moviesLoader: MoviesLoader())
         alertPresenter = AlertPresenter(delagate: self)
         statisticService = StatisticServiceImplementation()
         
-        questionFactory?.requestNextQuestion()
+        loadingIndicatorHidden(false)
+        questionFactory?.loadData()
     }
 }
 
@@ -70,15 +71,24 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
         }
     }
     
+    func didLoadDataFromServer() {
+        loadingIndicatorHidden(true)
+        questionFactory?.requestNextQuestion()
+    }
+    
+    func didFailToLoadData(error: Error) {
+        showNetworkError(message: "Невозможно загрузить данные")
+    }
+    
     // MARK: - AlertPresentableDelagate
     func present(alert: UIAlertController, animated flag: Bool) {
         self.present(alert, animated: flag)
     }
     
     // MARK: - Private functions
-    /// метод конвертации, который принимает моковый вопрос и возвращает вью модель для экрана вопроса
+    /// метод конвертации, который принимает вопрос и возвращает вью модель для экрана вопроса
     private func convert(model: QuizQuestion) -> QuizStepViewModel {
-        return QuizStepViewModel(image: UIImage.named(model.image),
+        return QuizStepViewModel(image: UIImage(data: model.image) ?? UIImage(),
                                  question: model.text,
                                  questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)")
     }
@@ -191,18 +201,9 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
             }
             self.currentQuestionIndex = 0
             self.correctAnswers = 0
-            self.questionFactory?.requestNextQuestion()
+            loadingIndicatorHidden(false)
+            questionFactory?.loadData()
         })
         alertPresenter?.show(alert)
-    }
-}
-
-extension UIImage {
-    static func named(_ name: String) -> UIImage {
-        if let image = UIImage(named: name) {
-            return image
-        } else {
-            return UIImage()
-        }
     }
 }
