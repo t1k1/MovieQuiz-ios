@@ -24,6 +24,7 @@ final class MovieQuizViewController: UIViewController {
     @IBOutlet private weak var textLabel: UILabel!
     @IBOutlet private weak var imageView: UIImageView!
     @IBOutlet private weak var counterLabel: UILabel!
+    @IBOutlet private weak var activityIndicator: UIActivityIndicatorView!
     
     // MARK: - Variables
     /// переменная со счётчиком правильных ответов, начальное значение закономерно 0
@@ -46,11 +47,12 @@ final class MovieQuizViewController: UIViewController {
         super.viewDidLoad()
         imageView.layer.cornerRadius = 15
         
-        questionFactory = QuestionFactory(delegate: self)
+        questionFactory = QuestionFactory(delegate: self, moviesLoader: MoviesLoader())
         alertPresenter = AlertPresenter(delagate: self)
         statisticService = StatisticServiceImplementation()
         
-        questionFactory?.requestNextQuestion()
+        activityIndicator.startAnimating()
+        questionFactory?.loadData()
     }
 }
 
@@ -69,15 +71,24 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
         }
     }
     
+    func didLoadDataFromServer() {
+        activityIndicator.stopAnimating()
+        questionFactory?.requestNextQuestion()
+    }
+    
+    func didFailToLoadData(error: String) {
+        showNetworkError(message: error)
+    }
+    
     // MARK: - AlertPresentableDelagate
     func present(alert: UIAlertController, animated flag: Bool) {
         self.present(alert, animated: flag)
     }
     
     // MARK: - Private functions
-    /// метод конвертации, который принимает моковый вопрос и возвращает вью модель для экрана вопроса
+    /// метод конвертации, который принимает вопрос и возвращает вью модель для экрана вопроса
     private func convert(model: QuizQuestion) -> QuizStepViewModel {
-        return QuizStepViewModel(image: UIImage.named(model.image),
+        return QuizStepViewModel(image: UIImage(data: model.image) ?? UIImage(),
                                  question: model.text,
                                  questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)")
     }
@@ -166,14 +177,23 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
         
         return message
     }
-}
-
-extension UIImage {
-    static func named(_ name: String) -> UIImage {
-        if let image = UIImage(named: name) {
-            return image
-        } else {
-            return UIImage()
-        }
+    
+    /// приватный метод который показывает что произошла ошибка
+    private func showNetworkError(message: String){
+        activityIndicator.stopAnimating()
+        
+        let alert = AlertModel(title: "Что-то пошло не так(",
+                               message: message,
+                               buttonText: "Попробовать ещё раз",
+                               completion: { [weak self] in
+            guard let self = self else {
+                return
+            }
+            self.currentQuestionIndex = 0
+            self.correctAnswers = 0
+            activityIndicator.startAnimating()
+            questionFactory?.loadData()
+        })
+        alertPresenter?.show(alert)
     }
 }
