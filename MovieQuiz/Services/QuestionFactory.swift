@@ -27,10 +27,17 @@ class QuestionFactory: QuestionFactoryProtocol {
                 
                 switch result {
                     case .success(let mostPopularMovies):
+                        let errorMessage = mostPopularMovies.errorMessage
+                        let items = mostPopularMovies.items
+                        
+                        if !(errorMessage.isEmpty) && items.isEmpty {
+                            self.delegate?.didFailToLoadData(error: errorMessage)
+                        }
+                            
                         self.movies = mostPopularMovies.items
                         self.delegate?.didLoadDataFromServer()
                     case .failure(let error):
-                        self.delegate?.didFailToLoadData(error: error)
+                        self.delegate?.didFailToLoadData(error: error.localizedDescription)
                 }
             }
         }
@@ -49,6 +56,11 @@ class QuestionFactory: QuestionFactoryProtocol {
                 imageData = try Data(contentsOf: movie.resizedImageURL)
             } catch {
                 print("Failed to load image")
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    
+                    self.delegate?.didFailToLoadData(error: error.localizedDescription)
+                }
             }
             
             let rating = Float(movie.rating) ?? 0

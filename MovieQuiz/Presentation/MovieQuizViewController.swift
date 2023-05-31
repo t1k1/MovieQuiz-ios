@@ -51,7 +51,7 @@ final class MovieQuizViewController: UIViewController {
         alertPresenter = AlertPresenter(delagate: self)
         statisticService = StatisticServiceImplementation()
         
-        loadingIndicatorHidden(false)
+        activityIndicator.startAnimating()
         questionFactory?.loadData()
     }
 }
@@ -72,12 +72,12 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
     }
     
     func didLoadDataFromServer() {
-        loadingIndicatorHidden(true)
+        activityIndicator.stopAnimating()
         questionFactory?.requestNextQuestion()
     }
     
-    func didFailToLoadData(error: Error) {
-        showNetworkError(message: "Невозможно загрузить данные")
+    func didFailToLoadData(error: String) {
+        showNetworkError(message: error)
     }
     
     // MARK: - AlertPresentableDelagate
@@ -91,16 +91,6 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
         return QuizStepViewModel(image: UIImage(data: model.image) ?? UIImage(),
                                  question: model.text,
                                  questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)")
-    }
-    
-    /// приватный метод для показа activityIndicator
-    private func loadingIndicatorHidden(_ state: Bool){
-        activityIndicator.isHidden = state
-        if state {
-            activityIndicator.stopAnimating()
-        } else {
-            activityIndicator.startAnimating()
-        }
     }
     
     /// приватный метод вывода на экран вопроса, который принимает на вход вью модель вопроса и ничего не возвращает
@@ -190,7 +180,7 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
     
     /// приватный метод который показывает что произошла ошибка
     private func showNetworkError(message: String){
-        loadingIndicatorHidden(true)
+        activityIndicator.stopAnimating()
         
         let alert = AlertModel(title: "Что-то пошло не так(",
                                message: message,
@@ -201,7 +191,7 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
             }
             self.currentQuestionIndex = 0
             self.correctAnswers = 0
-            loadingIndicatorHidden(false)
+            activityIndicator.startAnimating()
             questionFactory?.loadData()
         })
         alertPresenter?.show(alert)
