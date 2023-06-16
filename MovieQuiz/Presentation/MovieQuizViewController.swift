@@ -27,12 +27,9 @@ final class MovieQuizViewController: UIViewController {
     @IBOutlet private weak var activityIndicator: UIActivityIndicatorView!
     
     // MARK: - Variables
+    private let presenter = MovieQuizPresenter()
     /// переменная со счётчиком правильных ответов, начальное значение закономерно 0
     private var correctAnswers = 0
-    /// переменная с индексом текущего вопроса, начальное значение 0
-    private var currentQuestionIndex = 0
-    /// общее количество вопросов для квиза
-    private let questionsAmount: Int = 10
     /// фабрика вопросов
     private var questionFactory: QuestionFactoryProtocol?
     /// текущий вопрос, который видит пользователь
@@ -60,12 +57,10 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
     
     // MARK: - QuestionFactoryDelegate
     func didReceiveNextQuestion(question: QuizQuestion?) {
-        guard let question = question else {
-            return
-        }
+        guard let question = question else { return }
         
         currentQuestion = question
-        let viewModel = convert(model: question)
+        let viewModel = presenter.convert(model: question)
         DispatchQueue.main.async { [weak self] in
             self?.show(quiz: viewModel)
         }
@@ -83,14 +78,6 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
     // MARK: - AlertPresentableDelagate
     func present(alert: UIAlertController, animated flag: Bool) {
         self.present(alert, animated: flag)
-    }
-    
-    // MARK: - Private functions
-    /// метод конвертации, который принимает вопрос и возвращает вью модель для экрана вопроса
-    private func convert(model: QuizQuestion) -> QuizStepViewModel {
-        return QuizStepViewModel(image: UIImage(data: model.image) ?? UIImage(),
-                                 question: model.text,
-                                 questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)")
     }
     
     /// приватный метод вывода на экран вопроса, который принимает на вход вью модель вопроса и ничего не возвращает
@@ -126,11 +113,10 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
         imageView.layer.borderWidth = 0
         buttonCanBePressed(true)
         
-        if currentQuestionIndex == questionsAmount - 1 {
-            // идём в состояние "Результат квиза"
+        if presenter.isLastQuestion() {
             showResults()
         } else {
-            currentQuestionIndex += 1
+            presenter.switchToNextQuestion()
             questionFactory?.requestNextQuestion()
         }
     }
@@ -141,19 +127,19 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
             print("Не удалось получить статистику")
             return
         }
-        statisticService.store(correct: correctAnswers, total: questionsAmount)
+        statisticService.store(correct: correctAnswers, total: presenter.questionsAmount)
         
         let alert = AlertModel(title: "Этот раунд окончен!",
                                message: makeMessage(statisticService: statisticService,
                                                     correctAnswers: correctAnswers,
-                                                    totalQuestions: questionsAmount),
+                                                    totalQuestions: presenter.questionsAmount),
                                buttonText: "Сыграть еще раз",
                                completion: { [weak self] in
             guard let self = self else {
                 return
             }
             self.correctAnswers = 0
-            self.currentQuestionIndex = 0
+            presenter.resetQuestionIndex()
             self.questionFactory?.requestNextQuestion()
         })
         alertPresenter?.show(alert)
@@ -189,7 +175,7 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
             guard let self = self else {
                 return
             }
-            self.currentQuestionIndex = 0
+            presenter.resetQuestionIndex()
             self.correctAnswers = 0
             activityIndicator.startAnimating()
             questionFactory?.loadData()
