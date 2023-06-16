@@ -4,11 +4,9 @@ final class MovieQuizViewController: UIViewController {
     
     // MARK: - Actions
     @IBAction private func noButtonClicked(_ sender: UIButton) {
-        presenter.currentQuestion = currentQuestion
         presenter.noButtonClicked()
     }
     @IBAction private func yesButtonClicked(_ sender: UIButton) {
-        presenter.currentQuestion = currentQuestion
         presenter.yesButtonClicked()
     }
     
@@ -26,8 +24,6 @@ final class MovieQuizViewController: UIViewController {
     private var correctAnswers = 0
     /// фабрика вопросов
     private var questionFactory: QuestionFactoryProtocol?
-    /// текущий вопрос, который видит пользователь
-    private var currentQuestion: QuizQuestion?
     /// показывает алерты
     private var alertPresenter: AlertPresenterProtocol?
     /// для подсчета статистики
@@ -54,13 +50,7 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
     
     // MARK: - QuestionFactoryDelegate
     func didReceiveNextQuestion(question: QuizQuestion?) {
-        guard let question = question else { return }
-        
-        currentQuestion = question
-        let viewModel = presenter.convert(model: question)
-        DispatchQueue.main.async { [weak self] in
-            self?.show(quiz: viewModel)
-        }
+        presenter.didReceiveNextQuestion(question: question)
     }
     
     func didLoadDataFromServer() {
@@ -78,7 +68,7 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
     }
     
     /// приватный метод вывода на экран вопроса, который принимает на вход вью модель вопроса и ничего не возвращает
-    private func show(quiz step: QuizStepViewModel) {
+    func show(quiz step: QuizStepViewModel) {
         textLabel.text = step.question
         counterLabel.text = step.questionNumber
         imageView.image = step.image
@@ -98,67 +88,23 @@ extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDela
         
         // запускаем задачу через 1 секунду c помощью диспетчера задач
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            guard let self = self else {
-                return
-            }
-            self.showNextQuestionOrResults()
+            guard let self = self else { return }
+            
+            imageView.layer.borderWidth = 0
+            buttonCanBePressed(true)
+            
+            self.presenter.correctAnswers = self.correctAnswers
+            self.presenter.questionFactory = self.questionFactory
+            self.presenter.statisticService = self.statisticService
+            self.presenter.alertPresenter = self.alertPresenter
+            self.presenter.showNextQuestionOrResults()
         }
-    }
-    
-    // приватный метод, который содержит логику перехода в один из сценариев, метод ничего не принимает и ничего не возвращает
-    private func showNextQuestionOrResults() {
-        imageView.layer.borderWidth = 0
-        buttonCanBePressed(true)
-        
-        if presenter.isLastQuestion() {
-            showResults()
-        } else {
-            presenter.switchToNextQuestion()
-            questionFactory?.requestNextQuestion()
-        }
-    }
-    
-    /// приватный метод показывает результат квиза
-    private func showResults() {
-        guard let statisticService = statisticService else {
-            print("Не удалось получить статистику")
-            return
-        }
-        statisticService.store(correct: correctAnswers, total: presenter.questionsAmount)
-        
-        let alert = AlertModel(title: "Этот раунд окончен!",
-                               message: makeMessage(statisticService: statisticService,
-                                                    correctAnswers: correctAnswers,
-                                                    totalQuestions: presenter.questionsAmount),
-                               buttonText: "Сыграть еще раз",
-                               completion: { [weak self] in
-            guard let self = self else {
-                return
-            }
-            self.correctAnswers = 0
-            presenter.resetQuestionIndex()
-            self.questionFactory?.requestNextQuestion()
-        })
-        alertPresenter?.show(alert)
     }
     
     /// приватный метод делает доступными/недоступными кнопки да,нет
     private func buttonCanBePressed(_ state: Bool) {
         yesButton.isUserInteractionEnabled = state
         noButton.isUserInteractionEnabled = state
-    }
-    
-    /// приватный метод формирует message для алерта
-    private func makeMessage(statisticService: StatisticService, correctAnswers: Int, totalQuestions: Int) -> String {
-        let bestGame = statisticService.bestGame
-        let message = """
-        Ваш результат: \(correctAnswers)/\(totalQuestions)
-        Количество сыгранных квизов: \(statisticService.gamesCount)
-        Рекорд: \(bestGame.correct)/\(bestGame.total) (\(bestGame.date.dateTimeString))
-        Средняя точность: \(String(format: "%.2f", statisticService.totalAccuracy))%
-        """
-        
-        return message
     }
     
     /// приватный метод который показывает что произошла ошибка
