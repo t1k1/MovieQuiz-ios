@@ -7,58 +7,45 @@
 
 import UIKit
 
-final class MovieQuizPresenter {
+final class MovieQuizPresenter: QuestionFactoryDelegate, AlertPresentableDelagate {
     // MARK: - Variables
+    private weak var viewController: MovieQuizViewController?
+    /// для подсчета статистики
+    private let statisticService: StatisticService?
+    /// фабрика вопросов
+    private var questionFactory: QuestionFactoryProtocol?
+    /// перезентер для вывода алертов
+    private var alertPresenter: AlertPresenterProtocol?
+    
+    /// текущий вопрос, который видит пользователь
+    private var currentQuestion: QuizQuestion?
+    /// общее количество вопросов для квиза
+    private let questionsAmount: Int = 10
     /// переменная с индексом текущего вопроса, начальное значение 0
     private var currentQuestionIndex: Int = 0
-    /// общее количество вопросов для квиза
-    let questionsAmount: Int = 10
-    /// текущий вопрос, который видит пользователь
-    var currentQuestion: QuizQuestion?
-    weak var viewController: MovieQuizViewController?
-    var correctAnswers = 0
-    /// фабрика вопросов
-    var questionFactory: QuestionFactoryProtocol?
-    /// для подсчета статистики
-    var statisticService: StatisticService?
-    var alertPresenter: AlertPresenterProtocol?
-    
-    // MARK: - Functions
-    func isLastQuestion() -> Bool {
-        currentQuestionIndex == questionsAmount - 1
-    }
-    
-    func resetQuestionIndex() {
-        currentQuestionIndex = 0
-    }
-    
-    func switchToNextQuestion() {
-        currentQuestionIndex += 1
-    }
-    
-    /// метод конвертации, который принимает вопрос и возвращает вью модель для экрана вопроса
-    func convert(model: QuizQuestion) -> QuizStepViewModel {
-        return QuizStepViewModel(image: UIImage(data: model.image) ?? UIImage(),
-                                 question: model.text,
-                                 questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)")
-    }
-    
-    func yesButtonClicked() {
-        didAnswer(isYes: true)
-    }
-    
-    func noButtonClicked() {
-        didAnswer(isYes: false)
-    }
-    
-    private func didAnswer(isYes: Bool) {
-        guard let currentQuestion = currentQuestion else { return }
+    /// количество правильных ответов на вопросы
+    private var correctAnswers = 0
+ 
+    // MARK: - Initialization
+    init(viewController: MovieQuizViewController) {
+        self.viewController = viewController
         
-        let givenAnswer = isYes
+        statisticService = StatisticServiceImplementation()
         
-        viewController?.showAnswerResult(isCorrect: givenAnswer == currentQuestion.correctAnswer)
+        questionFactory = QuestionFactory(delegate: self, moviesLoader: MoviesLoader())
+        questionFactory?.loadData()
+    
+        alertPresenter = AlertPresenter(delagate: self)
+        
+        viewController.showLoadingIndicator()
     }
     
+    // MARK: - AlertPresentableDelagate
+    func present(alert: UIAlertController, animated flag: Bool) {
+        viewController?.present(alert, animated: flag)
+    }
+    
+    // MARK: - QuestionFactoryDelegate
     func didReceiveNextQuestion(question: QuizQuestion?) {
         guard let question = question else { return }
         
@@ -69,8 +56,59 @@ final class MovieQuizPresenter {
         }
     }
     
+    func didLoadDataFromServer() {
+        viewController?.hideLoadingIndicator()
+        questionFactory?.requestNextQuestion()
+    }
+    
+    func didFailToLoadData(error: String) {
+        showNetworkError(message: error)
+    }
+    
+    // MARK: - Internal functions
+    func yesButtonClicked() {
+        didAnswer(isYes: true)
+    }
+    
+    func noButtonClicked() {
+        didAnswer(isYes: false)
+    }
+    
+    // MARK: - Private functions
+    /// метод конвертации, который принимает вопрос и возвращает вью модель для экрана вопроса
+    private func convert(model: QuizQuestion) -> QuizStepViewModel {
+        return QuizStepViewModel(image: UIImage(data: model.image) ?? UIImage(),
+                                 question: model.text,
+                                 questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)")
+    }
+    
+    private func didAnswer(isYes: Bool) {
+        guard let currentQuestion = currentQuestion else { return }
+        
+        let givenAnswer = isYes
+        
+        proceedWithAnswer(isCorrect: givenAnswer == currentQuestion.correctAnswer)
+    }
+    
+    private func proceedWithAnswer(isCorrect: Bool) {
+        didAnswer(isCorrectAnswer: true)
+        
+        viewController?.highlightImageBorder(isCorrectAnswer: isCorrect)
+        viewController?.buttonCanBePressed(false)
+        
+        // запускаем задачу через 1 секунду c помощью диспетчера задач
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            guard let self = self else { return }
+            
+            viewController?.changeBorderWidth(width: 0)
+            viewController?.buttonCanBePressed(true)
+            
+            self.proceedToNextQuestionOrResults()
+        }
+    }
+    
     // приватный метод, который содержит логику перехода в один из сценариев, метод ничего не принимает и ничего не возвращает
-    func showNextQuestionOrResults() {
+    private func proceedToNextQuestionOrResults() {
         if self.isLastQuestion() {
             showResults()
         } else {
@@ -85,7 +123,7 @@ final class MovieQuizPresenter {
             print("Не удалось получить статистику")
             return
         }
-        statisticService.store(correct: correctAnswers, total: self.questionsAmount)
+        statisticService.store(correct: correctAnswers, total: questionsAmount)
         
         let alert = AlertModel(title: "Этот раунд окончен!",
                                message: makeMessage(statisticService: statisticService,
@@ -96,9 +134,7 @@ final class MovieQuizPresenter {
             guard let self = self else {
                 return
             }
-            self.correctAnswers = 0
-            self.resetQuestionIndex()
-            self.questionFactory?.requestNextQuestion()
+            restartGame()
         })
         alertPresenter?.show(alert)
     }
@@ -114,5 +150,41 @@ final class MovieQuizPresenter {
         """
         
         return message
+    }
+    
+    private func didAnswer(isCorrectAnswer: Bool) {
+        if isCorrectAnswer {
+            correctAnswers += 1
+        }
+    }
+    
+    private func isLastQuestion() -> Bool {
+        currentQuestionIndex == questionsAmount - 1
+    }
+    
+    private func restartGame() {
+        correctAnswers = 0
+        currentQuestionIndex = 0
+        questionFactory?.requestNextQuestion()
+    }
+    
+    private func switchToNextQuestion() {
+        currentQuestionIndex += 1
+    }
+    
+    /// приватный метод который показывает что произошла ошибка
+    private func showNetworkError(message: String){
+        viewController?.hideLoadingIndicator()
+        
+        let alert = AlertModel(title: "Что-то пошло не так(",
+                               message: message,
+                               buttonText: "Попробовать ещё раз",
+                               completion: { [weak self] in
+            guard let self = self else { return }
+            
+            self.restartGame()
+            viewController?.showLoadingIndicator()
+        })
+        alertPresenter?.show(alert)
     }
 }

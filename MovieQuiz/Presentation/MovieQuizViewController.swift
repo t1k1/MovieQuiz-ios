@@ -19,110 +19,50 @@ final class MovieQuizViewController: UIViewController {
     @IBOutlet private weak var activityIndicator: UIActivityIndicatorView!
     
     // MARK: - Variables
-    private let presenter = MovieQuizPresenter()
-    /// переменная со счётчиком правильных ответов, начальное значение закономерно 0
-    private var correctAnswers = 0
-    /// фабрика вопросов
-    private var questionFactory: QuestionFactoryProtocol?
-    /// показывает алерты
-    private var alertPresenter: AlertPresenterProtocol?
-    /// для подсчета статистики
-    private var statisticService: StatisticService?
+    private var presenter: MovieQuizPresenter!
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        presenter.viewController = self
-        
         imageView.layer.cornerRadius = 15
         
-        questionFactory = QuestionFactory(delegate: self, moviesLoader: MoviesLoader())
-        alertPresenter = AlertPresenter(delagate: self)
-        statisticService = StatisticServiceImplementation()
-        
-        activityIndicator.startAnimating()
-        questionFactory?.loadData()
+        presenter = MovieQuizPresenter(viewController: self)
+        showLoadingIndicator()
     }
 }
 
-extension MovieQuizViewController: QuestionFactoryDelegate, AlertPresentableDelagate {
-    
-    // MARK: - QuestionFactoryDelegate
-    func didReceiveNextQuestion(question: QuizQuestion?) {
-        presenter.didReceiveNextQuestion(question: question)
-    }
-    
-    func didLoadDataFromServer() {
-        activityIndicator.stopAnimating()
-        questionFactory?.requestNextQuestion()
-    }
-    
-    func didFailToLoadData(error: String) {
-        showNetworkError(message: error)
-    }
-    
-    // MARK: - AlertPresentableDelagate
-    func present(alert: UIAlertController, animated flag: Bool) {
-        self.present(alert, animated: flag)
-    }
-    
-    /// приватный метод вывода на экран вопроса, который принимает на вход вью модель вопроса и ничего не возвращает
+extension MovieQuizViewController {
+    /// метод вывода на экран вопроса, который принимает на вход вью модель вопроса
     func show(quiz step: QuizStepViewModel) {
         textLabel.text = step.question
         counterLabel.text = step.questionNumber
         imageView.image = step.image
     }
     
-    /// приватный метод, который меняет цвет рамки, имает на вход булевое значение и ничего не возвращает
-    func showAnswerResult(isCorrect: Bool) {
-        if isCorrect {
-            correctAnswers += 1
-        }
-        
+    /// метод изменения границы картинки в зависимости от ответа на вопрос
+    func highlightImageBorder(isCorrectAnswer: Bool){
         imageView.layer.masksToBounds = true
-        imageView.layer.borderWidth = 8
+        changeBorderWidth(width: 8)
         imageView.layer.cornerRadius = 15
-        imageView.layer.borderColor = isCorrect ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
-        buttonCanBePressed(false)
-        
-        // запускаем задачу через 1 секунду c помощью диспетчера задач
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            guard let self = self else { return }
-            
-            imageView.layer.borderWidth = 0
-            buttonCanBePressed(true)
-            
-            self.presenter.correctAnswers = self.correctAnswers
-            self.presenter.questionFactory = self.questionFactory
-            self.presenter.statisticService = self.statisticService
-            self.presenter.alertPresenter = self.alertPresenter
-            self.presenter.showNextQuestionOrResults()
-        }
+        imageView.layer.borderColor = isCorrectAnswer ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
+    }
+    
+    func changeBorderWidth(width: CGFloat){
+        imageView.layer.borderWidth = width
     }
     
     /// приватный метод делает доступными/недоступными кнопки да,нет
-    private func buttonCanBePressed(_ state: Bool) {
+    func buttonCanBePressed(_ state: Bool) {
         yesButton.isUserInteractionEnabled = state
         noButton.isUserInteractionEnabled = state
     }
     
-    /// приватный метод который показывает что произошла ошибка
-    private func showNetworkError(message: String){
+    func hideLoadingIndicator() {
         activityIndicator.stopAnimating()
-        
-        let alert = AlertModel(title: "Что-то пошло не так(",
-                               message: message,
-                               buttonText: "Попробовать ещё раз",
-                               completion: { [weak self] in
-            guard let self = self else {
-                return
-            }
-            presenter.resetQuestionIndex()
-            self.correctAnswers = 0
-            activityIndicator.startAnimating()
-            questionFactory?.loadData()
-        })
-        alertPresenter?.show(alert)
+    }
+    
+    func showLoadingIndicator() {
+        activityIndicator.startAnimating()
     }
 }
