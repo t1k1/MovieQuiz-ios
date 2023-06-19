@@ -27,8 +27,8 @@ final class MovieQuizPresenter: QuestionFactoryDelegate, AlertPresentableDelagat
     private var correctAnswers = 0
  
     // MARK: - Initialization
-    init(viewController: MovieQuizViewController) {
-        self.viewController = viewController
+    init(viewController: MovieQuizViewControllerProtocol) {
+        self.viewController = viewController as? MovieQuizViewController
         
         statisticService = StatisticServiceImplementation()
         
@@ -74,14 +74,14 @@ final class MovieQuizPresenter: QuestionFactoryDelegate, AlertPresentableDelagat
         didAnswer(isYes: false)
     }
     
-    // MARK: - Private functions
     /// метод конвертации, который принимает вопрос и возвращает вью модель для экрана вопроса
-    private func convert(model: QuizQuestion) -> QuizStepViewModel {
+    func convert(model: QuizQuestion) -> QuizStepViewModel {
         return QuizStepViewModel(image: UIImage(data: model.image) ?? UIImage(),
                                  question: model.text,
                                  questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)")
     }
     
+    // MARK: - Private functions
     private func didAnswer(isYes: Bool) {
         guard let currentQuestion = currentQuestion else { return }
         

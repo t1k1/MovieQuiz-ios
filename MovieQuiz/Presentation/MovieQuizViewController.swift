@@ -32,7 +32,7 @@ final class MovieQuizViewController: UIViewController {
     }
 }
 
-extension MovieQuizViewController {
+extension MovieQuizViewController: MovieQuizViewControllerProtocol {
     /// метод вывода на экран вопроса, который принимает на вход вью модель вопроса
     func show(quiz step: QuizStepViewModel) {
         textLabel.text = step.question
