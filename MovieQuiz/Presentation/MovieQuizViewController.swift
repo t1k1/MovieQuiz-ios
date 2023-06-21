@@ -43,13 +43,13 @@ extension MovieQuizViewController: MovieQuizViewControllerProtocol {
     /// метод изменения границы картинки в зависимости от ответа на вопрос
     func highlightImageBorder(isCorrectAnswer: Bool){
         imageView.layer.masksToBounds = true
-        changeBorderWidth(width: 8)
-        imageView.layer.cornerRadius = 15
+        changeBorderVisability(borderIsHidden: false)
         imageView.layer.borderColor = isCorrectAnswer ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
     }
     
-    func changeBorderWidth(width: CGFloat){
-        imageView.layer.borderWidth = width
+    /// метод скрывает/показывает рамку у катинки
+    func changeBorderVisability(borderIsHidden: Bool) {
+        imageView.layer.borderWidth = borderIsHidden ? 0 : 8
     }
     
     /// приватный метод делает доступными/недоступными кнопки да,нет

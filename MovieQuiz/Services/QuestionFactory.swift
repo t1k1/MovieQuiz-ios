@@ -19,7 +19,6 @@ class QuestionFactory: QuestionFactoryProtocol {
         case less
     }
     
-    /// инициализирует загрузку данных
     func loadData() {
         moviesLoader.loadMovies { [weak self] result in
             DispatchQueue.main.async {
@@ -33,7 +32,7 @@ class QuestionFactory: QuestionFactoryProtocol {
                         if !(errorMessage.isEmpty) && items.isEmpty {
                             self.delegate?.didFailToLoadData(error: errorMessage)
                         }
-                            
+                        
                         self.movies = mostPopularMovies.items
                         self.delegate?.didLoadDataFromServer()
                     case .failure(let error):

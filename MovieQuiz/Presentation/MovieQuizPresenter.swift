@@ -25,7 +25,7 @@ final class MovieQuizPresenter: QuestionFactoryDelegate, AlertPresentableDelagat
     private var currentQuestionIndex: Int = 0
     /// количество правильных ответов на вопросы
     private var correctAnswers = 0
- 
+    
     // MARK: - Initialization
     init(viewController: MovieQuizViewControllerProtocol) {
         self.viewController = viewController as? MovieQuizViewController
@@ -34,7 +34,7 @@ final class MovieQuizPresenter: QuestionFactoryDelegate, AlertPresentableDelagat
         
         questionFactory = QuestionFactory(delegate: self, moviesLoader: MoviesLoader())
         questionFactory?.loadData()
-    
+        
         alertPresenter = AlertPresenter(delagate: self)
         
         viewController.showLoadingIndicator()
@@ -100,7 +100,7 @@ final class MovieQuizPresenter: QuestionFactoryDelegate, AlertPresentableDelagat
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             guard let self = self else { return }
             
-            viewController?.changeBorderWidth(width: 0)
+            viewController?.changeBorderVisability(borderIsHidden: true)
             viewController?.buttonCanBePressed(true)
             
             self.proceedToNextQuestionOrResults()

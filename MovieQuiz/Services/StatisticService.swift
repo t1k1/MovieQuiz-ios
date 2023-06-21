@@ -47,6 +47,7 @@ final class StatisticServiceImplementation: StatisticService {
             userDefaults.set(newValue, forKey: Keys.total.rawValue)
         }
     }
+    
     /// количество правильных ответов в игре
     var correct: Int {
         get {
@@ -57,10 +58,12 @@ final class StatisticServiceImplementation: StatisticService {
             userDefaults.set(newValue, forKey: Keys.correct.rawValue)
         }
     }
+    
     /// средняя точность игры
     var totalAccuracy: Double {
         Double(correct) / Double(total) * 100
     }
+    
     /// количество игр
     var gamesCount: Int {
         get {
@@ -70,11 +73,12 @@ final class StatisticServiceImplementation: StatisticService {
             userDefaults.set(newValue, forKey: Keys.gamesCount.rawValue)
         }
     }
+    
     /// лучшая попытка
     var bestGame: GameRecord {
         get {
             guard let data = userDefaults.data(forKey: Keys.bestGame.rawValue),
-                    let record = try? JSONDecoder().decode(GameRecord.self, from: data) else {
+                  let record = try? JSONDecoder().decode(GameRecord.self, from: data) else {
                 return .init(correct: 0, total: 0, date: Date())
             }
             

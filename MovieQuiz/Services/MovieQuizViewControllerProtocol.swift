@@ -10,7 +10,7 @@ import Foundation
 protocol MovieQuizViewControllerProtocol: AnyObject {
     func show(quiz step: QuizStepViewModel)
     func highlightImageBorder(isCorrectAnswer: Bool)
-    func changeBorderWidth(width: CGFloat)
+    func changeBorderVisability(borderIsHidden: Bool)
     func buttonCanBePressed(_ state: Bool)
     func hideLoadingIndicator()
     func showLoadingIndicator()

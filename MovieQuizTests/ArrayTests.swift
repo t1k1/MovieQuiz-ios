@@ -5,8 +5,8 @@
 //  Created by Aleksey Kolesnikov on 09.06.2023.
 //
 
-import XCTest // не забывайте импортировать фреймворк для тестирования
-@testable import MovieQuiz // импортируем наше приложение для тестирования
+import XCTest
+@testable import MovieQuiz
 
 class Arraytest: XCTestCase {
     func testGetValueInRange() throws {
